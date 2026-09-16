@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: navaia-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5.6-luna
+      - key: ALLOWED_ORIGIN
+        value: "*"
