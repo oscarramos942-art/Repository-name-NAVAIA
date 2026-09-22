@@ -10,5 +10,9 @@ services:
         sync: false
       - key: OPENAI_MODEL
         value: gpt-5.6-luna
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
       - key: ALLOWED_ORIGIN
         value: "*"
