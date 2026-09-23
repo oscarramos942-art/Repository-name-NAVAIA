@@ -56,12 +56,23 @@ app.patch("/api/users/:id", requireAuth, requireRole("admin"), asyncRoute(async 
 app.get("/api/market-prices", requireAuth, asyncRoute(async (_req,res) => {
   res.json({
     updated_at: "2026-09-22",
-    timezone: "America/Santo_Domingo",
+    sources: {
+      exchange: "Banco Central de la República Dominicana",
+      consumer: "Pro Consumidor / SIDIP 3.0",
+      fuel: "MICM (referencia semanal)"
+    },
     prices: [
-      {id:"usd",name:"Dólar estadounidense",category:"Finanzas",unit:"USD",buy:59.2350,sell:59.6539,currency:"DOP",source:"Banco Central de la República Dominicana",source_url:"https://www.bancentral.gov.do/",note:"Tasa de referencia publicada para el 22/09/2026."},
-      {id:"egg_unit",name:"Huevo económico",category:"Avícola",unit:"unidad",average:8.09,currency:"DOP",source:"Pro Consumidor",source_url:"https://proconsumidor.gob.do/sondeo-de-precios-canasta-de-precios-justos/",note:"Referencia de informe de precios; el precio real puede variar por establecimiento."},
-      {id:"egg_carton",name:"Huevos económicos",category:"Avícola",unit:"cartón 30 unidades",average:216.17,currency:"DOP",source:"Pro Consumidor",source_url:"https://proconsumidor.gob.do/sondeo-de-precios-canasta-de-precios-justos/",note:"Referencia oficial disponible; verificar el informe más reciente antes de cotizar."},
-      {id:"fuel",name:"Combustibles",category:"Costos",unit:"galón",average:null,currency:"DOP",source:"Ministerio de Industria, Comercio y Mipymes (MICM)",source_url:"https://micm.gob.do/",note:"Consultar publicación semanal oficial para el precio vigente."}
+      {id:"usd",name:"Dólar estadounidense",category:"Finanzas",unit:"USD",buy:59.2350,sell:59.6539,currency:"DOP",source:"Banco Central de la República Dominicana",source_url:"https://www.bancentral.gov.do/",observed_at:"2026-09-22",note:"Tasa de referencia publicada para el 22/09/2026."},
+      {id:"egg_don_papito",name:"Huevos Don Papito",category:"Avícola",unit:"cartón 30 uds",average:254.75,currency:"DOP",source:"Pro Consumidor / SIDIP 3.0",source_url:"https://www.sidip.gob.do/categoria/182",observed_at:"2026-09-09"},
+      {id:"egg_endy",name:"Huevos Endy",category:"Avícola",unit:"cartón 30 uds",average:279.75,currency:"DOP",source:"Pro Consumidor / SIDIP 3.0",source_url:"https://www.sidip.gob.do/categoria/182",observed_at:"2026-09-09"},
+      {id:"egg_economicos",name:"Huevos Económicos",category:"Avícola",unit:"cartón 30 uds",average:205.37,currency:"DOP",source:"Pro Consumidor / SIDIP 3.0",source_url:"https://www.sidip.gob.do/categoria/182",observed_at:"2026-09-09"},
+      {id:"egg_market",name:"Huevos de mercado",category:"Avícola",unit:"cartón 30 uds",average:188.57,currency:"DOP",source:"Pro Consumidor / SIDIP 3.0",source_url:"https://www.sidip.gob.do/categoria/34",observed_at:"2026-09-09"},
+      {id:"chicken",name:"Pollo procesado",category:"Avícola",unit:"libra",average:81.43,currency:"DOP",source:"Pro Consumidor / SIDIP 3.0",source_url:"https://www.sidip.gob.do/categoria/34",observed_at:"2026-09-09"},
+      {id:"fuel_premium",name:"Gasolina Premium",category:"Combustibles",unit:"galón",average:350.10,currency:"DOP",source:"MICM",source_url:"https://micm.gob.do/",observed_at:"2026-09-19",note:"Precio semanal 19–25/09/2026."},
+      {id:"fuel_regular",name:"Gasolina Regular",category:"Combustibles",unit:"galón",average:315.50,currency:"DOP",source:"MICM",source_url:"https://micm.gob.do/",observed_at:"2026-09-19",note:"Precio semanal 19–25/09/2026."},
+      {id:"diesel_regular",name:"Gasoil Regular",category:"Combustibles",unit:"galón",average:267.80,currency:"DOP",source:"MICM",source_url:"https://micm.gob.do/",observed_at:"2026-09-19",note:"Precio semanal 19–25/09/2026."},
+      {id:"diesel_optimo",name:"Gasoil Óptimo",category:"Combustibles",unit:"galón",average:302.10,currency:"DOP",source:"MICM",source_url:"https://micm.gob.do/",observed_at:"2026-09-19",note:"Precio semanal 19–25/09/2026."},
+      {id:"glp",name:"GLP",category:"Combustibles",unit:"galón",average:135.20,currency:"DOP",source:"MICM",source_url:"https://micm.gob.do/",observed_at:"2026-09-19",note:"Precio semanal 19–25/09/2026."}
     ]
   });
 }));
