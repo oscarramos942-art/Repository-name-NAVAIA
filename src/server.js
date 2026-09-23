@@ -4,8 +4,8 @@ import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat } from "./navaia.js";
-import { query, initDb } from "./db.js";
-import { registerUser, loginUser, requireAuth } from "./auth.js";
+import { query, initDb, pool } from "./db.js";
+import { registerUser, loginUser, requireAuth, requireRole, createManagedUser, updateManagedUser } from "./auth.js";
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -36,6 +36,19 @@ app.get("/auth/me", requireAuth, asyncRoute(async (req,res) => {
   const r=await query("SELECT id,name,email,role,active,created_at FROM users WHERE id=$1",[req.auth.sub]);
   if(!r.rowCount || !r.rows[0].active) return res.status(401).json({error:"Usuario no disponible."});
   res.json({user:r.rows[0]});
+}));
+
+// Empleados y permisos: solo administradores pueden gestionar usuarios.
+app.get("/api/users", requireAuth, requireRole("admin"), asyncRoute(async (_req,res) => {
+  res.json((await query("SELECT id,name,email,role,active,created_at FROM users ORDER BY created_at DESC")).rows);
+}));
+app.post("/api/users", requireAuth, requireRole("admin"), asyncRoute(async (req,res) => {
+  const user=await createManagedUser(req.body || {});
+  res.status(201).json({user});
+}));
+app.patch("/api/users/:id", requireAuth, requireRole("admin"), asyncRoute(async (req,res) => {
+  if (req.params.id === req.auth.sub && req.body?.active === false) return res.status(400).json({error:"No puedes desactivar tu propio usuario."});
+  res.json({user:await updateManagedUser(req.params.id, req.body || {})});
 }));
 
 app.get("/api/businesses", requireAuth, asyncRoute(async (_req,res) => res.json((await query("SELECT * FROM businesses WHERE active=true ORDER BY name")).rows)));
@@ -83,21 +96,22 @@ app.post("/api/poultry", requireAuth, asyncRoute(async (req,res) => {
 
 app.get("/api/quotations", requireAuth, asyncRoute(async (_req,res) => res.json((await query("SELECT q.*,b.name business_name,c.name customer_name FROM quotations q LEFT JOIN businesses b ON b.id=q.business_id LEFT JOIN customers c ON c.id=q.customer_id ORDER BY q.created_at DESC")).rows)));
 app.post("/api/quotations", requireAuth, asyncRoute(async (req,res) => {
-  const items=Array.isArray(req.body.items)?req.body.items:[];
-  const subtotal=items.reduce((s,i)=>s+num(i.quantity)*num(i.unit_price),0), tax=num(req.body.tax), total=subtotal+tax;
-  const number=text(req.body.number)||("COT-"+Date.now());
-  const client=await (await import("./db.js")).pool.connect();
+  const items=Array.isArray(req.body.items)?req.body.items:[]; const subtotal=items.reduce((s,i)=>s+num(i.quantity)*num(i.unit_price),0), tax=num(req.body.tax), total=subtotal+tax; const number=text(req.body.number)||("COT-"+Date.now());
+  const client=await pool.connect();
   try { await client.query("BEGIN"); const q=await client.query("INSERT INTO quotations(business_id,customer_id,number,status,subtotal,tax,total,notes) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",[req.body.business_id||null,req.body.customer_id||null,number,allowed(req.body.status,["draft","sent","accepted","rejected","expired"],"draft"),subtotal,tax,total,text(req.body.notes)||null]); for(const i of items) await client.query("INSERT INTO quotation_items(quotation_id,description,quantity,unit_price,total) VALUES($1,$2,$3,$4,$5)",[q.rows[0].id,text(i.description),num(i.quantity)||1,num(i.unit_price),num(i.quantity||1)*num(i.unit_price)]); await client.query("COMMIT"); res.status(201).json(q.rows[0]); } catch(e){await client.query("ROLLBACK");throw e} finally{client.release()}
 }));
 
 app.get("/api/invoices", requireAuth, asyncRoute(async (_req,res) => res.json((await query("SELECT i.*,b.name business_name,c.name customer_name FROM invoices i LEFT JOIN businesses b ON b.id=i.business_id LEFT JOIN customers c ON c.id=i.customer_id ORDER BY i.created_at DESC")).rows)));
 app.post("/api/invoices", requireAuth, asyncRoute(async (req,res) => {
   const items=Array.isArray(req.body.items)?req.body.items:[]; const subtotal=items.reduce((s,i)=>s+num(i.quantity)*num(i.unit_price),0),tax=num(req.body.tax),total=subtotal+tax,number=text(req.body.number)||("FAC-"+Date.now());
-  const r=await query("INSERT INTO invoices(business_id,customer_id,number,status,subtotal,tax,total,due_date) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",[req.body.business_id||null,req.body.customer_id||null,number,allowed(req.body.status,["draft","issued","paid","cancelled"],"issued"),subtotal,tax,total,req.body.due_date||null]); res.status(201).json(r.rows[0]);
+  const client=await pool.connect();
+  try { await client.query("BEGIN"); const inv=await client.query("INSERT INTO invoices(business_id,customer_id,number,status,subtotal,tax,total,due_date) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",[req.body.business_id||null,req.body.customer_id||null,number,allowed(req.body.status,["draft","issued","paid","cancelled"],"issued"),subtotal,tax,total,req.body.due_date||null]); for(const i of items) await client.query("INSERT INTO invoice_items(invoice_id,description,quantity,unit_price,total) VALUES($1,$2,$3,$4,$5)",[inv.rows[0].id,text(i.description),num(i.quantity)||1,num(i.unit_price),num(i.quantity||1)*num(i.unit_price)]); await client.query("COMMIT"); res.status(201).json(inv.rows[0]); } catch(e){await client.query("ROLLBACK");throw e} finally{client.release()}
 }));
 
-app.get("/api/reminders", requireAuth, asyncRoute(async (req,res)=>res.json((await query("SELECT * FROM reminders WHERE user_id=$1 ORDER BY due_at",[req.auth.sub])).rows)));
+app.get("/api/reminders", requireAuth, asyncRoute(async (req,res)=>res.json((await query("SELECT * FROM reminders WHERE user_id=$1 ORDER BY done,due_at",[req.auth.sub])).rows)));
 app.post("/api/reminders", requireAuth, asyncRoute(async (req,res)=>{const r=await query("INSERT INTO reminders(user_id,title,due_at) VALUES($1,$2,$3) RETURNING *",[req.auth.sub,text(req.body.title),req.body.due_at]);res.status(201).json(r.rows[0])}));
+app.patch("/api/reminders/:id", requireAuth, asyncRoute(async (req,res)=>{const r=await query("UPDATE reminders SET done=$1 WHERE id=$2 AND user_id=$3 RETURNING *",[Boolean(req.body.done),req.params.id,req.auth.sub]);if(!r.rowCount)return res.status(404).json({error:"Recordatorio no encontrado."});res.json(r.rows[0])}));
+app.delete("/api/reminders/:id", requireAuth, asyncRoute(async (req,res)=>{const r=await query("DELETE FROM reminders WHERE id=$1 AND user_id=$2",[req.params.id,req.auth.sub]);if(!r.rowCount)return res.status(404).json({error:"Recordatorio no encontrado."});res.status(204).end()}));
 
 app.get("/api/dashboard", requireAuth, asyncRoute(async (_req,res) => {
   const [b,c,p,proj,fin,exp,eggs,birds]=await Promise.all([
