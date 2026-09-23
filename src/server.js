@@ -51,6 +51,21 @@ app.patch("/api/users/:id", requireAuth, requireRole("admin"), asyncRoute(async 
   res.json({user:await updateManagedUser(req.params.id, req.body || {})});
 }));
 
+
+// Panel de precios de mercado: referencias oficiales verificadas.
+app.get("/api/market-prices", requireAuth, asyncRoute(async (_req,res) => {
+  res.json({
+    updated_at: "2026-09-22",
+    timezone: "America/Santo_Domingo",
+    prices: [
+      {id:"usd",name:"Dólar estadounidense",category:"Finanzas",unit:"USD",buy:59.2350,sell:59.6539,currency:"DOP",source:"Banco Central de la República Dominicana",source_url:"https://www.bancentral.gov.do/",note:"Tasa de referencia publicada para el 22/09/2026."},
+      {id:"egg_unit",name:"Huevo económico",category:"Avícola",unit:"unidad",average:8.09,currency:"DOP",source:"Pro Consumidor",source_url:"https://proconsumidor.gob.do/sondeo-de-precios-canasta-de-precios-justos/",note:"Referencia de informe de precios; el precio real puede variar por establecimiento."},
+      {id:"egg_carton",name:"Huevos económicos",category:"Avícola",unit:"cartón 30 unidades",average:216.17,currency:"DOP",source:"Pro Consumidor",source_url:"https://proconsumidor.gob.do/sondeo-de-precios-canasta-de-precios-justos/",note:"Referencia oficial disponible; verificar el informe más reciente antes de cotizar."},
+      {id:"fuel",name:"Combustibles",category:"Costos",unit:"galón",average:null,currency:"DOP",source:"Ministerio de Industria, Comercio y Mipymes (MICM)",source_url:"https://micm.gob.do/",note:"Consultar publicación semanal oficial para el precio vigente."}
+    ]
+  });
+}));
+
 app.get("/api/businesses", requireAuth, asyncRoute(async (_req,res) => res.json((await query("SELECT * FROM businesses WHERE active=true ORDER BY name")).rows)));
 app.post("/api/businesses", requireAuth, asyncRoute(async (req,res) => {
   const r=await query("INSERT INTO businesses(name,type,description) VALUES($1,$2,$3) RETURNING *",[text(req.body.name),text(req.body.type)||"general",text(req.body.description)||null]);
