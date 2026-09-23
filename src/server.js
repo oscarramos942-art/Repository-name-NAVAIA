@@ -68,7 +68,30 @@ app.get("/api/products", requireAuth, asyncRoute(async (req,res) => {
   const r=await query("SELECT p.*,b.name business_name FROM products p LEFT JOIN businesses b ON b.id=p.business_id WHERE ($1::uuid IS NULL OR p.business_id=$1) ORDER BY p.name",[req.query.business_id||null]); res.json(r.rows);
 }));
 app.post("/api/products", requireAuth, asyncRoute(async (req,res) => {
-  const r=await query("INSERT INTO products(business_id,name,sku,category,unit,stock,min_stock,cost,price) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",[req.body.business_id||null,text(req.body.name),text(req.body.sku)||null,text(req.body.category)||null,text(req.body.unit)||"unidad",num(req.body.stock),num(req.body.min_stock),num(req.body.cost),num(req.body.price)]); res.status(201).json(r.rows[0]);
+  const r=await query("INSERT INTO products(business_id,name,sku,category,unit,stock,min_stock,cost,price) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",[req.body.business_id||null,text(req.body.name),text(req.body.sku)||null,text(req.body.category)||null,text(req.body.unit)||"unidad",num(req.body.stock),num(req.body.min_stock),num(req.body.cost),num(req.body.price)]);
+  if(num(req.body.stock)>0) await query("INSERT INTO inventory_movements(product_id,type,quantity,previous_stock,new_stock,reason) VALUES($1,'in',$2,0,$2,$3)",[r.rows[0].id,num(req.body.stock),"Stock inicial"]);
+  res.status(201).json(r.rows[0]);
+}));
+app.post("/api/products/:id/movement", requireAuth, asyncRoute(async (req,res) => {
+  const type=allowed(req.body.type,["in","out","adjustment"],"in");
+  const quantity=Math.abs(num(req.body.quantity));
+  if(!quantity) return res.status(400).json({error:"La cantidad debe ser mayor que cero."});
+  const client=await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const p=await client.query("SELECT * FROM products WHERE id=$1 FOR UPDATE",[req.params.id]);
+    if(!p.rowCount) { await client.query("ROLLBACK"); return res.status(404).json({error:"Producto no encontrado."}); }
+    const current=num(p.rows[0].stock);
+    const next=type==="in"?current+quantity:type==="out"?current-quantity:quantity;
+    if(next<0) { await client.query("ROLLBACK"); return res.status(400).json({error:"No hay suficiente stock para realizar esta salida."}); }
+    const updated=await client.query("UPDATE products SET stock=$1 WHERE id=$2 RETURNING *",[next,req.params.id]);
+    await client.query("INSERT INTO inventory_movements(product_id,type,quantity,previous_stock,new_stock,reason) VALUES($1,$2,$3,$4,$5,$6)",[req.params.id,type,quantity,current,next,text(req.body.reason)||null]);
+    await client.query("COMMIT");
+    res.json(updated.rows[0]);
+  } catch(e) { await client.query("ROLLBACK"); throw e; } finally { client.release(); }
+}));
+app.get("/api/products/:id/movements", requireAuth, asyncRoute(async (req,res) => {
+  res.json((await query("SELECT * FROM inventory_movements WHERE product_id=$1 ORDER BY created_at DESC LIMIT 100",[req.params.id])).rows);
 }));
 
 app.get("/api/projects", requireAuth, asyncRoute(async (req,res) => {
