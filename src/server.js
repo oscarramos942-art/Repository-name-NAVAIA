@@ -201,14 +201,65 @@ app.get("/api/dashboard", requireAuth, asyncRoute(async (_req,res) => {\n  await
   res.json({businesses:b.rows[0].count,customers:c.rows[0].count,products:p.rows[0].count,activeProjects:proj.rows[0].count,monthIncome:num(fin.rows[0].total),monthExpense:num(exp.rows[0].total),eggs:num(eggs.rows[0].total),birds:num(birds.rows[0].total)});
 }));
 
+async function buildAIContext() {
+  const [summary, businesses, inventory, poultry, quotes, invoices] = await Promise.all([
+    query(`SELECT
+      (SELECT COUNT(*) FROM businesses WHERE active=true)::int businesses,
+      (SELECT COUNT(*) FROM customers)::int customers,
+      (SELECT COUNT(*) FROM products WHERE active=true)::int products,
+      (SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type='income' AND date_trunc('month',transaction_date)=date_trunc('month',CURRENT_DATE)) income,
+      (SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type='expense' AND date_trunc('month',transaction_date)=date_trunc('month',CURRENT_DATE)) expense,
+      (SELECT COALESCE(SUM(current_birds),0) FROM poultry_batches) birds,
+      (SELECT COALESCE(SUM(eggs_count),0) FROM poultry_batches) eggs,
+      (SELECT COUNT(*) FROM projects WHERE status='in_progress')::int active_projects`),
+    query(`SELECT b.id,b.name,b.type,
+      COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.business_id=b.id AND t.type='income' AND date_trunc('month',t.transaction_date)=date_trunc('month',CURRENT_DATE)),0) month_income,
+      COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.business_id=b.id AND t.type='expense' AND date_trunc('month',t.transaction_date)=date_trunc('month',CURRENT_DATE)),0) month_expense,
+      COALESCE((SELECT COUNT(*) FROM customers c WHERE c.business_id=b.id),0)::int customers,
+      COALESCE((SELECT COUNT(*) FROM products p WHERE p.business_id=b.id AND p.active=true),0)::int products,
+      COALESCE((SELECT COUNT(*) FROM projects p WHERE p.business_id=b.id AND p.status='in_progress'),0)::int active_projects
+      FROM businesses b WHERE b.active=true ORDER BY b.name`),
+    query(`SELECT p.name,p.stock,p.min_stock,p.cost,p.price,b.name business_name
+      FROM products p LEFT JOIN businesses b ON b.id=p.business_id WHERE p.active=true ORDER BY p.stock-p.min_stock ASC,p.name LIMIT 100`),
+    query(`SELECT p.name,p.bird_type,p.current_birds,p.eggs_count,p.feed_kg,p.mortality,b.name business_name
+      FROM poultry_batches p LEFT JOIN businesses b ON b.id=p.business_id ORDER BY p.created_at DESC LIMIT 50`),
+    query(`SELECT COUNT(*)::int count,COALESCE(SUM(total),0) total FROM quotations WHERE date_trunc('month',created_at)=date_trunc('month',CURRENT_DATE)`),
+    query(`SELECT COUNT(*)::int count,COALESCE(SUM(total),0) total FROM invoices WHERE date_trunc('month',created_at)=date_trunc('month',CURRENT_DATE)`)
+  ]);
+  return {
+    fecha: new Date().toISOString().slice(0,10),
+    resumen: summary.rows[0],
+    negocios: businesses.rows,
+    inventario_priorizado: inventory.rows,
+    avicola: poultry.rows,
+    cotizaciones_mes: quotes.rows[0],
+    facturas_mes: invoices.rows[0],
+    precios_mercado: {
+      dolar: {compra:59.2350,venta:59.6539,fecha:"2026-09-22"},
+      huevos_carton_referencias: [
+        {nombre:"Don Papito",precio:254.75,fecha:"2026-09-09"},
+        {nombre:"Endy",precio:279.75,fecha:"2026-09-09"},
+        {nombre:"Económicos",precio:205.37,fecha:"2026-09-09"},
+        {nombre:"Mercado",precio:188.57,fecha:"2026-09-09"}
+      ],
+      pollo_libra:81.43,
+      combustibles: {premium:350.10,regular:315.50,gasoil_regular:267.80,gasoil_optimo:302.10,glp:135.20,fecha:"2026-09-19"}
+    }
+  };
+}
+
+app.get("/api/ai/context", requireAuth, asyncRoute(async (_req,res) => {
+  res.json(await buildAIContext());
+}));
+
 app.post("/ai/chat", requireAuth, asyncRoute(async (req,res) => {
   const message=text(req.body?.message);
   if(!message)return res.status(400).json({error:"El mensaje es obligatorio."});
   if(!process.env.OPENAI_API_KEY)return res.status(503).json({error:"La IA no está configurada en el servidor."});
 
-  const d=await query("SELECT (SELECT COUNT(*) FROM customers) customers,(SELECT COUNT(*) FROM products) products,(SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type='income' AND date_trunc('month',transaction_date)=date_trunc('month',CURRENT_DATE)) income,(SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type='expense' AND date_trunc('month',transaction_date)=date_trunc('month',CURRENT_DATE)) expense,(SELECT COALESCE(SUM(current_birds),0) FROM poultry_batches) birds,(SELECT COALESCE(SUM(eggs_count),0) FROM poultry_batches) eggs");
+  const context=await buildAIContext();
   try {
-    res.json({answer:await chat(message,d.rows[0])});
+    res.json({answer:await chat(message,context)});
   } catch (e) {
     console.error("NAVAIA AI:", {message:e?.message, status:e?.status ?? null, code:e?.code ?? null, model:e?.navaia?.model ?? null});
     const status = Number(e?.status);
