@@ -128,10 +128,21 @@ app.get("/api/dashboard", requireAuth, asyncRoute(async (_req,res) => {
 }));
 
 app.post("/ai/chat", requireAuth, asyncRoute(async (req,res) => {
-  const message=text(req.body?.message); if(!message)return res.status(400).json({error:"El mensaje es obligatorio."});
-  if(!process.env.OPENAI_API_KEY)return res.status(500).json({error:"OPENAI_API_KEY no configurada."});
+  const message=text(req.body?.message);
+  if(!message)return res.status(400).json({error:"El mensaje es obligatorio."});
+  if(!process.env.OPENAI_API_KEY)return res.status(503).json({error:"La IA no está configurada en el servidor."});
+
   const d=await query("SELECT (SELECT COUNT(*) FROM customers) customers,(SELECT COUNT(*) FROM products) products,(SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type='income' AND date_trunc('month',transaction_date)=date_trunc('month',CURRENT_DATE)) income,(SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type='expense' AND date_trunc('month',transaction_date)=date_trunc('month',CURRENT_DATE)) expense,(SELECT COALESCE(SUM(current_birds),0) FROM poultry_batches) birds,(SELECT COALESCE(SUM(eggs_count),0) FROM poultry_batches) eggs");
-  res.json({answer:await chat(message,d.rows[0])});
+  try {
+    res.json({answer:await chat(message,d.rows[0])});
+  } catch (e) {
+    console.error("NAVAIA AI:", {message:e?.message, status:e?.status ?? null, code:e?.code ?? null, model:e?.navaia?.model ?? null});
+    const status = Number(e?.status);
+    if (status === 401) return res.status(502).json({error:"La clave de OpenAI fue rechazada por el servicio. Revisa la configuración de OPENAI_API_KEY en Render."});
+    if (status === 404) return res.status(502).json({error:"El modelo de IA configurado no está disponible para esta clave de OpenAI."});
+    if (status === 429) return res.status(502).json({error:"OpenAI rechazó temporalmente la solicitud por límite o cuota."});
+    return res.status(502).json({error:"NAVAIA no pudo comunicarse con el servicio de IA.",code:e?.code ?? "AI_REQUEST_FAILED"});
+  }
 }));
 
 app.use((err,_req,res,_next)=>{console.error(err);res.status(500).json({error:"Error interno de NAVAIA."})});
