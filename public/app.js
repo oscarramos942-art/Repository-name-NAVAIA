@@ -72,8 +72,17 @@ function newEmployee(){formModal("Nuevo empleado",[{id:"name",label:"Nombre"},{i
 async function saveEmployee(){try{await api("/api/users",{method:"POST",body:JSON.stringify({name:val("name"),email:val("email"),password:val("password"),role:val("role")})});document.getElementById("modal").remove();employees();}catch(e){alert(e.message);}}
 async function editEmployee(id,role,active){try{await api("/api/users/"+id,{method:"PATCH",body:JSON.stringify({role,active})});employees();}catch(e){alert(e.message);}}
 
-function aiView(){shell('<div class="panel ai"><h2>NAVAIA IA</h2><p class="muted">Consulta el estado general de tus negocios.</p><textarea id="aiq" placeholder="Ej.: ¿Cómo están mis negocios este mes?"></textarea><button class="primary" onclick="askAI()">Preguntar a NAVAIA</button><div id="answer" class="answer hide"></div></div>');}
-async function askAI(){const a=document.getElementById("answer");a.classList.remove("hide");a.textContent="Consultando...";try{a.textContent=(await api("/ai/chat",{method:"POST",body:JSON.stringify({message:document.getElementById("aiq").value})})).answer;}catch(e){a.textContent=e.message;}}
+async function aiView(){
+  shell('<div class="panel ai"><div class="muted">✦ ASISTENTE INTELIGENTE</div><h2>NAVAIA IA</h2><p class="muted">Analiza tus negocios usando los datos registrados en NAVAIA.</p><div id="aiSnapshot" class="ai-snapshot">Cargando información...</div><div class="ai-prompts"><button onclick="useAIPrompt(\'¿Cómo están mis negocios este mes?\')">Estado del mes</button><button onclick="useAIPrompt(\'¿Qué negocio está generando más ingresos y cuáles son sus gastos?\')">Ingresos y gastos</button><button onclick="useAIPrompt(\'¿Qué productos tienen el inventario bajo?\')">Inventario bajo</button><button onclick="useAIPrompt(\'¿Cómo está la Granja Avícola Don Santo y qué impacto tienen los precios actuales de huevos?\')">Avícola</button></div><textarea id="aiq" placeholder="Ej.: ¿Cómo están mis negocios este mes?"></textarea><button class="primary" onclick="askAI()">Preguntar a NAVAIA</button><div id="answer" class="answer hide"></div></div>');
+  try{
+    const d=await api("/api/ai/context");
+    const r=d.resumen||{};
+    const negocios=(d.negocios||[]).map(x=>'<div class="ai-mini"><strong>'+esc(x.name)+'</strong><span>'+money(x.month_income||0)+' ingresos · '+money(x.month_expense||0)+' gastos</span></div>').join("");
+    document.getElementById("aiSnapshot").innerHTML='<div class="ai-snapshot-head"><strong>Resumen actual</strong><span>'+esc(d.fecha||"")+'</span></div><div class="ai-mini-grid"><div class="ai-mini"><strong>'+r.businesses+'</strong><span>Negocios</span></div><div class="ai-mini"><strong>'+r.customers+'</strong><span>Clientes</span></div><div class="ai-mini"><strong>'+r.products+'</strong><span>Productos</span></div><div class="ai-mini"><strong>'+r.birds+'</strong><span>Aves</span></div></div><div class="ai-businesses">'+negocios+'</div>';
+  }catch(e){document.getElementById("aiSnapshot").innerHTML='<div class="error">'+esc(e.message)+'</div>';}
+}
+function useAIPrompt(q){const el=document.getElementById("aiq");if(el){el.value=q;el.focus();}}
+async function askAI(){const a=document.getElementById("answer");const q=document.getElementById("aiq")?.value?.trim();if(!q){a.classList.remove("hide");a.textContent="Escribe una pregunta para NAVAIA.";return;}a.classList.remove("hide");a.textContent="Consultando los datos de tus negocios...";try{a.textContent=(await api("/ai/chat",{method:"POST",body:JSON.stringify({message:q})})).answer;}catch(e){a.textContent=e.message;}}
 if(state.token)boot();else loginView();
 
 function marketPrices(){
