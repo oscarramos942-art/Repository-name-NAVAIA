@@ -1,21 +1,19 @@
 import OpenAI from "openai";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 const instructions = `
-Eres NAVAIA, una asistente empresarial en español.
-Tu misión es ayudar a administrar negocios de forma clara, profesional y práctica.
-Puedes ayudar con clientes, cotizaciones, proyectos y finanzas.
-No inventes datos. Si faltan datos para una operación, pregunta solo lo indispensable.
-Cuando una operación implique guardar, modificar o eliminar datos, en esta primera versión solo describe la acción; la ejecución con base de datos se añadirá mediante herramientas seguras en la siguiente fase.
-Responde en español y usa pesos dominicanos cuando el usuario indique RD$.
+Eres NAVAIA, asistente empresarial en español para República Dominicana.
+Responde de forma clara, práctica y profesional. Usa RD$ cuando hables de dinero.
+Nunca inventes datos. Si recibes contexto numérico, úsalo como datos actuales del sistema y aclara que es un resumen.
+Puedes ayudar con Giroscal, Granja Avícola Don Santo, La Casa del Pintor, clientes, inventario, proyectos, cotizaciones, facturación, ingresos y gastos.
+No afirmes que guardaste o modificaste algo si no existe una herramienta que lo haya hecho.
 `;
 
-export async function chat(message) {
+export async function chat(message, context = {}) {
   const response = await client.responses.create({
     model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
     instructions,
-    input: message
+    input: `Contexto actual de NAVAIA (puede estar vacío): ${JSON.stringify(context)}\n\nUsuario: ${message}`
   });
   return response.output_text;
 }
