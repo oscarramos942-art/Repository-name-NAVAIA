@@ -70,7 +70,7 @@ app.get("/api/transactions", requireAuth, asyncRoute(async (req,res) => {
 }));
 app.post("/api/transactions", requireAuth, asyncRoute(async (req,res) => {
   const type=allowed(req.body.type,["income","expense"],"expense");
-  const r=await query("INSERT INTO transactions(business_id,type,category,description,amount,transaction_date) VALUES($1,$2,$3,$4,$5,$6) RETURNING *",[req.body.business_id||null,type,text(req.body.category)||"general",text(req.body.description),num(req.body.amount),req.body.transaction_date||null]); res.status(201).json(r.rows[0]);
+  const r=await query("INSERT INTO transactions(business_id,type,category,description,amount,transaction_date) VALUES($1,$2,$3,$4,$5,$6) RETURNING *",[req.body.business_id||null,type,text(req.body.category)||"general",text(req.body.description),num(req.body.amount),req.body.transaction_date||new Date().toISOString().slice(0,10)]); res.status(201).json(r.rows[0]);
 }));
 
 app.get("/api/poultry", requireAuth, asyncRoute(async (req,res) => {
@@ -78,7 +78,7 @@ app.get("/api/poultry", requireAuth, asyncRoute(async (req,res) => {
 }));
 app.post("/api/poultry", requireAuth, asyncRoute(async (req,res) => {
   const initial=Math.max(0,Math.trunc(num(req.body.initial_birds)));
-  const r=await query("INSERT INTO poultry_batches(business_id,name,bird_type,initial_birds,current_birds,feed_kg,eggs_count,mortality,start_date,notes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",[req.body.business_id||null,text(req.body.name),text(req.body.bird_type)||"ponedoras",initial,Math.trunc(num(req.body.current_birds||initial)),num(req.body.feed_kg),Math.trunc(num(req.body.eggs_count)),Math.trunc(num(req.body.mortality)),req.body.start_date||null,text(req.body.notes)||null]); res.status(201).json(r.rows[0]);
+  const r=await query("INSERT INTO poultry_batches(business_id,name,bird_type,initial_birds,current_birds,feed_kg,eggs_count,mortality,start_date,notes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",[req.body.business_id||null,text(req.body.name),text(req.body.bird_type)||"ponedoras",initial,Math.trunc(num(req.body.current_birds||initial)),num(req.body.feed_kg),Math.trunc(num(req.body.eggs_count)),Math.trunc(num(req.body.mortality)),req.body.start_date||new Date().toISOString().slice(0,10),text(req.body.notes)||null]); res.status(201).json(r.rows[0]);
 }));
 
 app.get("/api/quotations", requireAuth, asyncRoute(async (_req,res) => res.json((await query("SELECT q.*,b.name business_name,c.name customer_name FROM quotations q LEFT JOIN businesses b ON b.id=q.business_id LEFT JOIN customers c ON c.id=q.customer_id ORDER BY q.created_at DESC")).rows)));
