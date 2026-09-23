@@ -87,3 +87,13 @@ button{cursor:pointer;border:0}
   .grid{grid-template-columns:1fr}
   .stat .n{font-size:25px}
 }
+
+.market-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.market-card{position:relative;overflow:hidden}
+.market-card:before{content:"";position:absolute;left:0;top:0;width:4px;height:100%;background:var(--brand-gradient)}
+.market-icon{font-size:30px;margin-bottom:8px}
+.market-price{font-size:25px;font-weight:900;margin:12px 0 4px}
+.market-note{color:#b4c5d9;line-height:1.45}
+.market-source{color:#71e5ff;text-decoration:none;font-size:13px}
+.market-source:hover{text-decoration:underline}
+.market-head{margin-bottom:14px}
