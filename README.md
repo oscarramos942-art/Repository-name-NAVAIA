@@ -1,62 +1,33 @@
-# NAVAIA Backend v1.0
+# NAVAIA 2.0
 
-Backend mínimo para conectar el prototipo de NAVAIA con la API de OpenAI.
+Plataforma empresarial web para administrar múltiples negocios desde teléfono y computadora.
 
-## Requisitos
-- Node.js 20+
-- Una API key de OpenAI
+## Incluye
+- Autenticación con bcrypt + JWT.
+- PostgreSQL con inicialización automática del esquema.
+- Dashboard general.
+- Negocios: Giroscal, Granja Avícola Don Santo y La Casa del Pintor.
+- Clientes.
+- Inventario.
+- Cotizaciones.
+- Facturación.
+- Ingresos y gastos.
+- Proyectos.
+- Control de lotes avícolas.
+- Recordatorios.
+- NAVAIA IA con contexto resumido de la base de datos.
+- Interfaz web responsive servida por el mismo backend.
 
-## Instalación
+## Render
+Runtime Node, build `npm install`, start `npm start`, health check `/health`.
 
-```bash
-npm install
-```
+Variables necesarias:
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (opcional; por defecto gpt-5.6-luna)
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `ALLOWED_ORIGIN` (opcional)
 
-Copia `.env.example` como `.env` y coloca tu clave:
+La aplicación crea las tablas automáticamente al iniciar si `DATABASE_URL` está disponible.
 
-```env
-OPENAI_API_KEY=TU_CLAVE
-PORT=3000
-```
-
-Nunca publiques `.env` ni pongas la clave dentro de la app móvil.
-
-## Ejecutar
-
-```bash
-npm start
-```
-
-Prueba:
-
-```bash
-curl http://localhost:3000/health
-```
-
-Y el chat:
-
-```bash
-curl -X POST http://localhost:3000/ai/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Hola NAVAIA, explícame qué puedes hacer."}'
-```
-
-## Siguiente fase
-Añadir autenticación, PostgreSQL/Supabase y herramientas controladas:
-- create_client
-- create_quotation
-- create_project
-- create_transaction
-- get_financial_summary
-
-
-## Deploy en Render
-
-- Runtime: Node
-- Build Command: `npm install`
-- Start Command: `npm start`
-- Health Check: `/health`
-- Secret requerido: `OPENAI_API_KEY`
-- Modelo por defecto: `gpt-5.6-luna`
-
-No coloques la clave de OpenAI dentro del código ni la envíes por el chat.
+Nunca publiques claves, contraseñas o archivos .env.
