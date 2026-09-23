@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const instructions = `
 Eres NAVAIA, asistente empresarial en español para República Dominicana.
 Responde de forma clara, práctica y profesional. Usa RD$ cuando hables de dinero.
@@ -10,10 +9,28 @@ No afirmes que guardaste o modificaste algo si no existe una herramienta que lo 
 `;
 
 export async function chat(message, context = {}) {
-  const response = await client.responses.create({
-    model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
-    instructions,
-    input: `Contexto actual de NAVAIA (puede estar vacío): ${JSON.stringify(context)}\n\nUsuario: ${message}`
-  });
-  return response.output_text;
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    const error = new Error("OPENAI_API_KEY no configurada.");
+    error.code = "OPENAI_NOT_CONFIGURED";
+    throw error;
+  }
+
+  const client = new OpenAI({ apiKey });
+  const model = process.env.OPENAI_MODEL || "gpt-5.6-luna";
+
+  try {
+    const response = await client.responses.create({
+      model,
+      instructions,
+      input: `Contexto actual de NAVAIA (puede estar vacío): ${JSON.stringify(context)}
+
+Usuario: ${message}`
+    });
+
+    return response.output_text || "No recibí una respuesta de la IA.";
+  } catch (error) {
+    error.navaia = { model, status: error?.status ?? null, code: error?.code ?? null };
+    throw error;
+  }
 }
