@@ -109,7 +109,26 @@ app.post("/api/transactions", requireAuth, asyncRoute(async (req,res) => {
   const r=await query("INSERT INTO transactions(business_id,type,category,description,amount,transaction_date) VALUES($1,$2,$3,$4,$5,$6) RETURNING *",[req.body.business_id||null,type,text(req.body.category)||"general",text(req.body.description),num(req.body.amount),req.body.transaction_date||new Date().toISOString().slice(0,10)]); res.status(201).json(r.rows[0]);
 }));
 
-app.get("/api/poultry", requireAuth, asyncRoute(async (req,res) => {
+async function syncDailyPoultryProduction() {
+  const rows = (await query("SELECT p.id,p.business_id,p.eggs_count,b.name business_name FROM poultry_batches p LEFT JOIN businesses b ON b.id=p.business_id WHERE p.current_birds>0")).rows;
+  const today = new Date().toISOString().slice(0,10);
+  for (const batch of rows) {
+    const daily = await query("SELECT COUNT(*)::int count FROM poultry_daily_production WHERE batch_id=$1 AND production_date=$2",[batch.id,today]);
+    if (daily.rows[0].count) continue;
+    const eggs = batch.business_name === "Granja Avícola Don Santo" ? 30 : 0;
+    await query("INSERT INTO poultry_daily_production(batch_id,production_date,eggs_count) VALUES($1,$2,$3)",[batch.id,today,eggs]);
+    if (eggs > 0) {
+      await query("UPDATE poultry_batches SET eggs_count=eggs_count+$1 WHERE id=$2",[eggs,batch.id]);
+      const product = await query("SELECT id,stock FROM products WHERE business_id=$1 AND lower(name)=lower('Huevos') ORDER BY created_at LIMIT 1",[batch.business_id]);
+      if (product.rowCount) {
+        const previous=num(product.rows[0].stock), next=previous+eggs;
+        await query("UPDATE products SET stock=$1 WHERE id=$2",[next,product.rows[0].id]);
+        await query("INSERT INTO inventory_movements(product_id,type,quantity,previous_stock,new_stock,reason) VALUES($1,'in',$2,$3,$4,$5)",[product.rows[0].id,eggs,previous,next,"Producción diaria de huevos"]);
+      }
+    }
+  }
+}
+app.get("/api/poultry", requireAuth, asyncRoute(async (req,res) => {\n  await syncDailyPoultryProduction();
   const r=await query("SELECT p.*,b.name business_name FROM poultry_batches p LEFT JOIN businesses b ON b.id=p.business_id WHERE ($1::uuid IS NULL OR p.business_id=$1) ORDER BY p.created_at DESC",[req.query.business_id||null]); res.json(r.rows);
 }));
 app.post("/api/poultry", requireAuth, asyncRoute(async (req,res) => {
@@ -136,7 +155,7 @@ app.post("/api/reminders", requireAuth, asyncRoute(async (req,res)=>{const r=awa
 app.patch("/api/reminders/:id", requireAuth, asyncRoute(async (req,res)=>{const r=await query("UPDATE reminders SET done=$1 WHERE id=$2 AND user_id=$3 RETURNING *",[Boolean(req.body.done),req.params.id,req.auth.sub]);if(!r.rowCount)return res.status(404).json({error:"Recordatorio no encontrado."});res.json(r.rows[0])}));
 app.delete("/api/reminders/:id", requireAuth, asyncRoute(async (req,res)=>{const r=await query("DELETE FROM reminders WHERE id=$1 AND user_id=$2",[req.params.id,req.auth.sub]);if(!r.rowCount)return res.status(404).json({error:"Recordatorio no encontrado."});res.status(204).end()}));
 
-app.get("/api/dashboard", requireAuth, asyncRoute(async (_req,res) => {
+app.get("/api/dashboard", requireAuth, asyncRoute(async (_req,res) => {\n  await syncDailyPoultryProduction();
   const [b,c,p,proj,fin,exp,eggs,birds]=await Promise.all([
     query("SELECT COUNT(*)::int count FROM businesses WHERE active=true"),
     query("SELECT COUNT(*)::int count FROM customers"),
