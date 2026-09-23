@@ -80,3 +80,13 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_product_date ON inventory_movements(product_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS poultry_daily_production (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  batch_id UUID NOT NULL REFERENCES poultry_batches(id) ON DELETE CASCADE,
+  production_date DATE NOT NULL,
+  eggs_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(batch_id, production_date)
+);
+CREATE INDEX IF NOT EXISTS idx_poultry_daily_production_date ON poultry_daily_production(production_date DESC);
