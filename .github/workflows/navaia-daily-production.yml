@@ -1,0 +1,13 @@
+name: NAVAIA Daily Production
+
+on:
+  schedule:
+    - cron: "5 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger NAVAIA daily sync
+        run: curl --fail --silent --show-error "https://navaia-api-oscar-1948.onrender.com/api/dashboard" > /dev/null
