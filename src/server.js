@@ -115,6 +115,12 @@ async function syncDailyPoultryProduction() {
   for (const batch of rows) {
     const daily = await query("SELECT COUNT(*)::int count FROM poultry_daily_production WHERE batch_id=$1 AND production_date=$2",[batch.id,today]);
     if (daily.rows[0].count) continue;
+    // Si el lote ya tenía huevos registrados antes de activar la automatización,
+    // tomamos ese valor como el registro inicial de hoy para no duplicarlo.
+    if (num(batch.eggs_count) > 0) {
+      await query("INSERT INTO poultry_daily_production(batch_id,production_date,eggs_count) VALUES($1,$2,$3)",[batch.id,today,Math.trunc(num(batch.eggs_count))]);
+      continue;
+    }
     const eggs = batch.business_name === "Granja Avícola Don Santo" ? 30 : 0;
     await query("INSERT INTO poultry_daily_production(batch_id,production_date,eggs_count) VALUES($1,$2,$3)",[batch.id,today,eggs]);
     if (eggs > 0) {
