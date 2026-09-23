@@ -69,3 +69,14 @@ CREATE INDEX IF NOT EXISTS idx_products_business ON products(business_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_business_date ON transactions(business_id, transaction_date);
 CREATE INDEX IF NOT EXISTS idx_projects_business ON projects(business_id);
 CREATE INDEX IF NOT EXISTS idx_poultry_business ON poultry_batches(business_id);
+CREATE TABLE IF NOT EXISTS inventory_movements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  type VARCHAR(20) NOT NULL CHECK (type IN ('in','out','adjustment')),
+  quantity NUMERIC(14,2) NOT NULL,
+  previous_stock NUMERIC(14,2) NOT NULL DEFAULT 0,
+  new_stock NUMERIC(14,2) NOT NULL DEFAULT 0,
+  reason VARCHAR(180),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_product_date ON inventory_movements(product_id, created_at DESC);
