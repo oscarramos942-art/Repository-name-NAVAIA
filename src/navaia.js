@@ -42,6 +42,7 @@ export async function chat(message, context = {}) {
     project: process.env.OPENAI_PROJECT_ID?.trim() || undefined,
   });
   const model = process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
+  // Deploy marker: 2026-09-23 — OpenAI auth hardening active.
 
   try {
     const response = await client.responses.create({
