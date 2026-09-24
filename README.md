@@ -31,3 +31,6 @@ Variables necesarias:
 La aplicación crea las tablas automáticamente al iniciar si `DATABASE_URL` está disponible.
 
 Nunca publiques claves, contraseñas o archivos .env.
+
+
+<!-- NAVAIA IA fallback deployment marker: 2026-09-23 -->
