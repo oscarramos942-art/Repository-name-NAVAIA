@@ -30,11 +30,18 @@ function localAnswer(message, context, aiIssue=""){
 }
 
 export async function chat(message, context = {}) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return localAnswer(message, context);
+  const rawApiKey = process.env.OPENAI_API_KEY;
+  if (!rawApiKey) return localAnswer(message, context);
 
-  const client = new OpenAI({ apiKey });
-  const model = process.env.OPENAI_MODEL || "gpt-5.6-luna";
+  // Render puede conservar espacios/comillas al pegar secretos. Normalizamos
+  // el valor antes de entregarlo al SDK para evitar un 401 por formato.
+  const apiKey = rawApiKey.trim().replace(/^["']|["']$/g, "");
+  const client = new OpenAI({
+    apiKey,
+    organization: process.env.OPENAI_ORG_ID?.trim() || undefined,
+    project: process.env.OPENAI_PROJECT_ID?.trim() || undefined,
+  });
+  const model = process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
 
   try {
     const response = await client.responses.create({
@@ -47,7 +54,7 @@ Usuario: ${message}`
     return response.output_text || localAnswer(message, context);
   } catch (error) {
     error.navaia = { model, status: error?.status ?? null, code: error?.code ?? null };
-    if (Number(error?.status) === 401) return localAnswer(message, context, "OpenAI rechazó la clave (HTTP 401). La clave de Render no está siendo aceptada.");
+    if (Number(error?.status) === 401) return localAnswer(message, context, "OpenAI respondió HTTP 401 (no autorizado). NAVAIA ya normalizó la clave antes de enviarla; revisa que OPENAI_API_KEY en Render sea la clave secreta activa del proyecto correcto y, si tu organización/proyecto lo requiere, configura OPENAI_ORG_ID y OPENAI_PROJECT_ID.");
     if (Number(error?.status) === 429) return localAnswer(message, context, "OpenAI respondió HTTP 429: límite o cuota. La clave sí fue reconocida, pero la cuenta/proyecto no puede procesar la solicitud en este momento.");
     throw error;
   }
