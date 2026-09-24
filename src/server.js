@@ -160,7 +160,8 @@ async function syncDailyPoultryProduction() {
     }
   }
 }
-app.get("/api/poultry", requireAuth, asyncRoute(async (req,res) => {\n  await syncDailyPoultryProduction();
+app.get("/api/poultry", requireAuth, asyncRoute(async (req,res) => {
+  await syncDailyPoultryProduction();
   const r=await query("SELECT p.*,b.name business_name FROM poultry_batches p LEFT JOIN businesses b ON b.id=p.business_id WHERE ($1::uuid IS NULL OR p.business_id=$1) ORDER BY p.created_at DESC",[req.query.business_id||null]); res.json(r.rows);
 }));
 app.post("/api/poultry", requireAuth, asyncRoute(async (req,res) => {
@@ -187,7 +188,8 @@ app.post("/api/reminders", requireAuth, asyncRoute(async (req,res)=>{const r=awa
 app.patch("/api/reminders/:id", requireAuth, asyncRoute(async (req,res)=>{const r=await query("UPDATE reminders SET done=$1 WHERE id=$2 AND user_id=$3 RETURNING *",[Boolean(req.body.done),req.params.id,req.auth.sub]);if(!r.rowCount)return res.status(404).json({error:"Recordatorio no encontrado."});res.json(r.rows[0])}));
 app.delete("/api/reminders/:id", requireAuth, asyncRoute(async (req,res)=>{const r=await query("DELETE FROM reminders WHERE id=$1 AND user_id=$2",[req.params.id,req.auth.sub]);if(!r.rowCount)return res.status(404).json({error:"Recordatorio no encontrado."});res.status(204).end()}));
 
-app.get("/api/dashboard", requireAuth, asyncRoute(async (_req,res) => {\n  await syncDailyPoultryProduction();
+app.get("/api/dashboard", requireAuth, asyncRoute(async (_req,res) => {
+  await syncDailyPoultryProduction();
   const [b,c,p,proj,fin,exp,eggs,birds]=await Promise.all([
     query("SELECT COUNT(*)::int count FROM businesses WHERE active=true"),
     query("SELECT COUNT(*)::int count FROM customers"),
