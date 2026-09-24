@@ -47,7 +47,8 @@ Usuario: ${message}`
     return response.output_text || localAnswer(message, context);
   } catch (error) {
     error.navaia = { model, status: error?.status ?? null, code: error?.code ?? null };
-    if (Number(error?.status) === 401) return localAnswer(message, context, "OpenAI rechazó la clave (HTTP 401). La clave de Render no está siendo aceptada.");\n    if (Number(error?.status) === 429) return localAnswer(message, context, "OpenAI respondió HTTP 429: límite o cuota. La clave sí fue reconocida, pero la cuenta/proyecto no puede procesar la solicitud en este momento.");
+    if (Number(error?.status) === 401) return localAnswer(message, context, "OpenAI rechazó la clave (HTTP 401). La clave de Render no está siendo aceptada.");
+    if (Number(error?.status) === 429) return localAnswer(message, context, "OpenAI respondió HTTP 429: límite o cuota. La clave sí fue reconocida, pero la cuenta/proyecto no puede procesar la solicitud en este momento.");
     throw error;
   }
 }
