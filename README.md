@@ -34,3 +34,6 @@ Nunca publiques claves, contraseñas o archivos .env.
 
 
 <!-- NAVAIA IA fallback deployment marker: 2026-09-23 -->
+
+
+<!-- AI diagnostic deployment 2026-09-24T00:22:43.826Z -->
