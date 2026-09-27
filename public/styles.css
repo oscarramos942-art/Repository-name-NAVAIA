@@ -112,3 +112,195 @@ button{cursor:pointer;border:0}
 .ai-prompts{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
 .ai-prompts button{font-size:12px;padding:9px 12px}
 @media(max-width:650px){.ai-mini-grid{grid-template-columns:repeat(2,1fr)}.ai-businesses .ai-mini{flex-direction:column;align-items:flex-start}}
+/* =========================================================
+   NAVAIA — MÓDULO DE CONSTRUCCIÓN
+   ========================================================= */
+
+.construction-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+  margin-top:18px;
+}
+
+.construction-grid > .panel{
+  position:relative;
+  overflow:hidden;
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+
+.construction-grid > .panel:hover{
+  transform:translateY(-2px);
+  box-shadow:0 14px 35px rgba(0,0,0,.22);
+}
+
+.construction-grid > .panel h2{
+  margin:6px 0 8px;
+}
+
+.construction-grid > .panel h3{
+  margin-top:8px;
+}
+
+.construction-grid .grid{
+  margin-top:15px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.construction-grid .stat{
+  min-width:0;
+}
+
+.construction-grid .stat .n{
+  font-size:18px;
+}
+
+/* Encabezado del módulo */
+
+.construction-grid + .panel{
+  margin-top:18px;
+}
+
+/* Barra de avance */
+
+.construction-progress{
+  width:100%;
+  height:12px;
+  border-radius:999px;
+  overflow:hidden;
+  background:#16263a;
+}
+
+.construction-progress-fill{
+  height:100%;
+  border-radius:999px;
+  transition:width .3s ease;
+}
+
+/* Tarjetas de estadísticas */
+
+.construction-stat{
+  padding:15px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;
+  background:rgba(255,255,255,.025);
+}
+
+.construction-stat .label{
+  margin-top:0;
+}
+
+.construction-stat .value{
+  font-size:20px;
+  font-weight:800;
+  margin-top:5px;
+}
+
+/* Estado de obra */
+
+.construction-status{
+  display:inline-flex;
+  align-items:center;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#163552;
+  color:#cfe7ff;
+  font-size:12px;
+  font-weight:700;
+}
+
+/* Paneles internos */
+
+.construction-section{
+  margin-top:18px;
+}
+
+.construction-section h2{
+  margin-top:0;
+}
+
+/* Seguimiento fotográfico */
+
+.construction-photo{
+  width:100%;
+  max-height:280px;
+  object-fit:cover;
+  border-radius:14px;
+  margin-top:10px;
+  border:1px solid #29435e;
+}
+
+/* Formularios de construcción */
+
+#modal .card{
+  max-height:90vh;
+  overflow-y:auto;
+}
+
+#modal .field{
+  margin-bottom:10px;
+}
+
+#modal .field label{
+  display:block;
+  margin-bottom:5px;
+}
+
+/* Tablas */
+
+.construction-table{
+  width:100%;
+  overflow-x:auto;
+}
+
+.construction-table table{
+  min-width:700px;
+}
+
+/* Botones del módulo */
+
+.construction-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:15px;
+}
+
+/* Móvil */
+
+@media(max-width:850px){
+
+  .construction-grid{
+    grid-template-columns:1fr;
+  }
+
+  .construction-grid .grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+}
+
+@media(max-width:520px){
+
+  .construction-grid{
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+
+  .construction-grid .grid{
+    grid-template-columns:1fr;
+  }
+
+  .construction-grid > .panel{
+    padding:14px;
+  }
+
+  .construction-actions{
+    flex-direction:column;
+  }
+
+  .construction-actions button{
+    width:100%;
+  }
+
+}
