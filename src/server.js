@@ -277,3 +277,4 @@ app.get("*",(_req,res)=>res.sendFile(path.join(root,"../public/index.html")));
 
 async function start(){try{await initDb();console.log("Base de datos inicializada.");}catch(e){console.error("DB init:",e.message)} app.listen(port,"0.0.0.0",()=>console.log("NAVAIA 2.0 activo en puerto "+port));}
 start();
+
