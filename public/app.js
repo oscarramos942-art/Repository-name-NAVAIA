@@ -94,3 +94,4 @@ function marketPrices(){
     shell('<div class="toolbar"><button onclick="marketPrices()">↻ Actualizar</button></div><div class="panel market-head"><h2>Precios de mercado</h2><p class="muted">Referencias oficiales para apoyar compras, costos y cotizaciones. Última actualización: '+esc(d.updated_at)+'</p></div><div class="grid market-grid">'+cards+'</div><div class="panel"><strong>Importante:</strong> estos son precios de referencia. NAVAIA no los usa todavía para cambiar automáticamente tus costos o precios de venta.</div>');
   }).catch(e=>shell('<div class="error">'+esc(e.message)+'</div>'));
 }
+
